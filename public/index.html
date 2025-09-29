@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Utilidades PDF Inalma</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    h1 { margin-bottom: 8px; }
+    .logo { max-height: 80px; margin-bottom: 12px; }
+    .box { border: 2px dashed #ccc; padding: 24px; text-align: center; border-radius: 12px; }
+    .row { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+    button { padding: 10px 16px; border-radius: 10px; border: 1px solid #ddd; cursor: pointer; }
+    select, input[type=file] { padding: 8px; }
+    .hint { color: #666; font-size: .9rem; }
+    #drop.drag { border-color: #999; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div style="text-align:center">
+    <img src="logo.png" alt="Logo Inalma" class="logo">
+    <h1>Utilidades PDF Inalma</h1>
+    <p>Comprime tus documentos PDF fácilmente</p>
+  </div>
+
+  <div class="box" id="drop">
+    <p>Arrastra tu PDF o selecciónalo</p>
+    <input id="file" type="file" accept="application/pdf" />
+
+    <div class="row">
+      <label for="preset">Calidad:</label>
+      <select id="preset">
+        <option value="/screen">Muy comprimido (/screen)</option>
+        <option value="/ebook" selected>Equilibrado (/ebook)</option>
+        <option value="/printer">Alta calidad (/printer)</option>
+      </select>
+      <button id="go">Comprimir</button>
+    </div>
+
+    <p class="hint">Límite 50 MB. El archivo se elimina del servidor tras la descarga.</p>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const presetSel = document.getElementById('preset');
+    const goBtn = document.getElementById('go');
+    const drop = document.getElementById('drop');
+
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('drag');
+      if (e.dataTransfer.files?.length) fileInput.files = e.dataTransfer.files;
+    });
+
+    goBtn.onclick = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) { alert('Selecciona un PDF'); return; }
+      const preset = presetSel.value;
+
+      const form = new FormData();
+      form.append('file', file);
+
+      const res = await fetch(`/api/compress?preset=${encodeURIComponent(preset)}`, {
+        method: 'POST',
+        body: form
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Error: ${err.error || res.statusText}`);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name.replace(/\.pdf$/i, '') + '-compressed.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+</body>
+</html>
