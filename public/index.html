@@ -1,20 +1,15 @@
 <!doctype html>
 <html lang="es">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Utilidades PDF Inalma</title>
   <link rel="stylesheet" href="styles.css">
- <link rel="icon" type="image/svg+xml" href="favicon.svg?v=11">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=11">
-<link rel="shortcut icon" href="favicon.ico?v=11">
-<meta name="theme-color" content="#157b2e">
-
-
-
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=11">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=11">
+  <link rel="shortcut icon" href="favicon.ico?v=11">
   <meta name="theme-color" content="#157b2e">
-
+  <meta name="theme-color" content="#157b2e">
 </head>
 
 <body>
@@ -27,6 +22,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="compress">Compresión</button>
     <button class="tab-btn" data-tab="convert">PDF → Word</button>
+    <button class="tab-btn" data-tab="merge">Fusionar</button>
   </div>
 
   <!-- Compresión -->
@@ -62,8 +58,31 @@
     </div>
   </div>
 
-  <!-- JS de la app (externo) -->
+  <!-- Fusionar 2 PDFs -->
+  <div id="panel-merge" class="panel">
+    <h2 class="panel-title"><span class="badge">Módulo activo</span> Fusionar 2 PDFs</h2>
+    <div class="box" id="drop3">
+      <p>Selecciona dos archivos. Se unirán en este orden: <strong>Archivo 1 → Archivo 2</strong>.</p>
+
+      <form id="mergeForm">
+        <div class="file-grid">
+          <label>Archivo 1 (inicio)
+            <input type="file" name="file1" accept="application/pdf" required>
+          </label>
+          <label>Archivo 2 (final)
+            <input type="file" name="file2" accept="application/pdf" required>
+          </label>
+        </div>
+        <div class="row">
+          <button id="goMerge" type="submit">Fusionar</button>
+        </div>
+      </form>
+
+      <p class="hint">Límite 50 MB por archivo. Los temporales se eliminan tras la descarga.</p>
+      <p id="mergeMsg" class="status"></p>
+    </div>
+  </div>
+
   <script src="app.js?v=2"></script>
 </body>
-
 </html>

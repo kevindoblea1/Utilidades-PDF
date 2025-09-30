@@ -32,8 +32,9 @@ const upload = multer({
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Montar módulos (routers)
-app.use('/api/compress', require('./api/compress')({ upload, UPLOAD_DIR }));
-app.use('/api/pdf2word', require('./api/pdf2word')({ upload, UPLOAD_DIR }));
+app.use('/api/compress',  require('./api/compress')({ upload, UPLOAD_DIR }));
+app.use('/api/pdf2word',  require('./api/pdf2word')({ upload, UPLOAD_DIR }));
+app.use('/api/merge-two', require('./api/merge-two')({ upload, UPLOAD_DIR })); // NUEVO
 
 app.listen(PORT, '0.0.0.0', () =>
   console.log(`Utilidades PDF Inalma en http://localhost:${PORT}`)

@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabButtons = document.querySelectorAll('.tab-btn');
   const panels = {
     compress: document.getElementById('panel-compress'),
-    convert: document.getElementById('panel-convert'),
+    convert:  document.getElementById('panel-convert'),
+    merge:    document.getElementById('panel-merge'),
   };
 
   tabButtons.forEach(btn => {
@@ -107,5 +108,61 @@ document.addEventListener('DOMContentLoaded', () => {
       a.remove();
       URL.revokeObjectURL(url);
     };
+  }
+
+  // ----- Fusionar 2 PDFs -----
+  const mergeForm = document.getElementById('mergeForm');
+  const mergeMsg  = document.getElementById('mergeMsg');
+  const drop3     = document.getElementById('drop3');
+  const f1 = mergeForm?.querySelector('input[name="file1"]');
+  const f2 = mergeForm?.querySelector('input[name="file2"]');
+
+  if (drop3 && f1 && f2) {
+    drop3.addEventListener('dragover', e => { e.preventDefault(); drop3.classList.add('drag'); });
+    drop3.addEventListener('dragleave', () => drop3.classList.remove('drag'));
+    drop3.addEventListener('drop', e => {
+      e.preventDefault(); drop3.classList.remove('drag');
+      const files = e.dataTransfer.files;
+      if (!files?.length) return;
+
+      const pdfs = [...files].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+      if (pdfs[0]) { const dt1 = new DataTransfer(); dt1.items.add(pdfs[0]); f1.files = dt1.files; }
+      if (pdfs[1]) { const dt2 = new DataTransfer(); dt2.items.add(pdfs[1]); f2.files = dt2.files; }
+    });
+  }
+
+  if (mergeForm && f1 && f2) {
+    mergeForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      mergeMsg.textContent = 'Procesando...';
+      try {
+        if (!f1.files?.[0] || !f2.files?.[0]) {
+          mergeMsg.textContent = 'Selecciona ambos archivos';
+          return;
+        }
+        const fd = new FormData();
+        fd.append('file1', f1.files[0]);
+        fd.append('file2', f2.files[0]);
+
+        const res = await fetch('/api/merge-two', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error || res.statusText);
+        }
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const ts   = new Date().toISOString().replace(/[:.]/g, '-');
+        a.href = url; a.download = `fusion_${ts}.pdf`;
+        document.body.appendChild(a); a.click();
+        a.remove(); URL.revokeObjectURL(url);
+
+        mergeMsg.textContent = 'Listo: archivo descargado.';
+        mergeForm.reset();
+      } catch (err) {
+        mergeMsg.textContent = `Error: ${err.message || 'No se pudo fusionar los PDFs'}`;
+      }
+    });
   }
 });
