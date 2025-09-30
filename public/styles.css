@@ -146,6 +146,7 @@ label {
   color: var(--text);
 }
 
+/* Controles base */
 select,
 input[type=file] {
   padding: 10px 12px;
@@ -160,6 +161,7 @@ input[type=file]:focus {
   box-shadow: 0 0 0 3px rgba(27, 155, 58, .15);
 }
 
+/* Botones */
 button {
   padding: 10px 16px;
   border-radius: 10px;
@@ -186,17 +188,68 @@ button.secondary {
   font-size: .9rem;
 }
 
+/* Drag & drop feedback */
 #drop.drag,
-#drop2.drag {
+#drop2.drag,
+#drop3.drag {
   border-color: #999;
   background: #fafafa;
 }
 
-/* Alineación de los 2 inputs del módulo Fusionar */
+/* ============================= */
+/*  Estilo UNIFICADO file inputs  */
+/* ============================= */
+.panel input[type="file"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+
+.panel input[type="file"]:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, .2);
+}
+
+/* Botón nativo "Seleccionar archivo" */
+.panel input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.panel input[type="file"]::file-selector-button:hover {
+  background: #15803d;
+}
+
+/* Safari/WebKit antiguo */
+.panel input[type="file"]::-webkit-file-upload-button {
+  margin-right: 12px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ============================= */
+/*   FUSIONAR: layout específico  */
+/* ============================= */
 #panel-merge .file-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 20px;
+  /* evita el solape de los bordes redondos */
   align-items: center;
 }
 
@@ -204,12 +257,45 @@ button.secondary {
   display: block;
 }
 
-#panel-merge input[type="file"] {
-  width: 100%;
-}
-
+/* Responsive */
 @media (max-width: 720px) {
   #panel-merge .file-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================= */
+/*  Mensajes de estado (reusables) */
+/* ============================= */
+.status.ok {
+  display: inline-block;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, .35);
+  padding: 6px 10px;
+  border-radius: 8px;
+  animation: fadeOut 2.2s forwards;
+}
+
+.status.err {
+  display: inline-block;
+  background: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid rgba(239, 68, 68, .35);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1
+  }
+
+  70% {
+    opacity: 1
+  }
+
+  100% {
+    opacity: 0
   }
 }

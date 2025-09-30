@@ -114,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mergeForm = document.getElementById('mergeForm');
   const mergeMsg  = document.getElementById('mergeMsg');
   const drop3     = document.getElementById('drop3');
+  const goMerge   = document.getElementById('goMerge');
   const f1 = mergeForm?.querySelector('input[name="file1"]');
   const f2 = mergeForm?.querySelector('input[name="file2"]');
 
@@ -134,20 +135,30 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mergeForm && f1 && f2) {
     mergeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
       mergeMsg.textContent = 'Procesando...';
+      mergeMsg.classList.remove('ok', 'err');
+
+      if (goMerge) goMerge.disabled = true;
+
       try {
         if (!f1.files?.[0] || !f2.files?.[0]) {
           mergeMsg.textContent = 'Selecciona ambos archivos';
+          mergeMsg.classList.add('err');
+          if (goMerge) goMerge.disabled = false;
           return;
         }
+
         const fd = new FormData();
         fd.append('file1', f1.files[0]);
         fd.append('file2', f2.files[0]);
 
         const res = await fetch('/api/merge-two', { method: 'POST', body: fd });
         if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j.error || res.statusText);
+          let msg = 'Error al fusionar';
+          try { const j = await res.json(); msg = j.error || msg; }
+          catch { const t = await res.text(); if (t && t.length < 200) msg = t; }
+          throw new Error(msg);
         }
 
         const blob = await res.blob();
@@ -159,9 +170,19 @@ document.addEventListener('DOMContentLoaded', () => {
         a.remove(); URL.revokeObjectURL(url);
 
         mergeMsg.textContent = 'Listo: archivo descargado.';
+        mergeMsg.classList.add('ok');
+        setTimeout(() => {
+          mergeMsg.classList.remove('ok');
+          mergeMsg.textContent = '';
+        }, 2300);
+
         mergeForm.reset();
       } catch (err) {
-        mergeMsg.textContent = `Error: ${err.message || 'No se pudo fusionar los PDFs'}`;
+        mergeMsg.textContent = err.message || 'No se pudo fusionar los PDFs';
+        mergeMsg.classList.remove('ok');
+        mergeMsg.classList.add('err');
+      } finally {
+        if (goMerge) goMerge.disabled = false;
       }
     });
   }
