@@ -9,7 +9,6 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=11">
   <link rel="shortcut icon" href="favicon.ico?v=11">
   <meta name="theme-color" content="#157b2e">
-  <meta name="theme-color" content="#157b2e">
 </head>
 
 <body>
@@ -23,6 +22,7 @@
     <button class="tab-btn active" data-tab="compress">Compresión</button>
     <button class="tab-btn" data-tab="convert">PDF → Word</button>
     <button class="tab-btn" data-tab="merge">Fusionar</button>
+    <button class="tab-btn" data-tab="img2pdf">Imagen → PDF</button><!-- NUEVO -->
   </div>
 
   <!-- Compresión -->
@@ -83,6 +83,26 @@
     </div>
   </div>
 
-  <script src="app.js?v=2"></script>
+  <!-- Imagen → PDF -->
+  <div id="panel-img2pdf" class="panel">
+    <h2 class="panel-title"><span class="badge">Módulo activo</span> Imagen → PDF</h2>
+    <div class="box" id="drop4">
+      <p>Selecciona una imagen (JPG o PNG) y la pondremos en una página PDF.</p>
+      <input id="imgFile" type="file" accept="image/jpeg,image/png" />
+      <div class="row">
+        <label for="page">Tamaño:</label>
+        <select id="page">
+          <option value="A4" selected>A4</option>
+          <option value="LETTER">Carta (Letter)</option>
+        </select>
+        <label for="margin">Margen (mm):</label>
+        <input id="margin" type="number" min="0" value="10" style="width:80px">
+        <button id="goImgPdf">Convertir a PDF</button>
+      </div>
+      <p class="hint">La imagen se centra y escala manteniendo proporción. Límite 30 MB.</p>
+    </div>
+  </div>
+
+  <script src="app.js?v=3"></script>
 </body>
 </html>

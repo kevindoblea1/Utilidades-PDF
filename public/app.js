@@ -1,27 +1,32 @@
+// public/app.js
 document.addEventListener('DOMContentLoaded', () => {
-  // Tabs
-  const tabButtons = document.querySelectorAll('.tab-btn');
-  const panels = {
-    compress: document.getElementById('panel-compress'),
-    convert:  document.getElementById('panel-convert'),
-    merge:    document.getElementById('panel-merge'),
-  };
-
-  tabButtons.forEach(btn => {
+  // ---- Navegación de pestañas ----
+  document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      Object.values(panels).forEach(p => p.classList.remove('active'));
-      const key = btn.dataset.tab;
-      panels[key]?.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`panel-${tab}`)?.classList.add('active');
     });
   });
 
-  // ----- Compresión -----
+  // ---- Util: descargar Blob ----
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  // =========================
+  //  Compresión de PDF
+  // =========================
   const fileInput = document.getElementById('file');
   const presetSel = document.getElementById('preset');
-  const goBtn = document.getElementById('go');
-  const drop = document.getElementById('drop');
+  const goBtn     = document.getElementById('go');
+  const drop      = document.getElementById('drop');
 
   if (drop) {
     drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
@@ -33,42 +38,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (goBtn) {
-    goBtn.onclick = async () => {
-      const file = fileInput.files?.[0];
-      if (!file) { alert('Selecciona un PDF'); return; }
-      const preset = presetSel.value;
+    goBtn.addEventListener('click', async () => {
+      const file = fileInput?.files?.[0];
+      if (!file) return alert('Selecciona un PDF');
 
-      const form = new FormData();
-      form.append('file', file);
+      const fd = new FormData();
+      fd.append('file', file);
 
-      const res = await fetch(`/api/compress?preset=${encodeURIComponent(preset)}`, {
-        method: 'POST',
-        body: form
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(`Error: ${err.error || res.statusText}\n${err.detail || ''}`);
-        return;
+      try {
+        const res = await fetch(`/api/compress?preset=${encodeURIComponent(presetSel.value)}`, {
+          method: 'POST', body: fd
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return alert(`Error: ${err.error || res.statusText}\n${err.detail || ''}`);
+        }
+        const blob = await res.blob();
+        downloadBlob(blob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
+      } catch (e) {
+        alert(`Fallo de red: ${e.message || e}`);
       }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, '') + '-compressed.pdf';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    };
+    });
   }
 
-  // ----- PDF → Word -----
+  // =========================
+  //  PDF → Word
+  // =========================
   const fileInput2 = document.getElementById('file2');
-  const goBtn2 = document.getElementById('go2');
-  const ocrChk = document.getElementById('ocr');
-  const drop2 = document.getElementById('drop2');
+  const goBtn2     = document.getElementById('go2');
+  const ocrChk     = document.getElementById('ocr');
+  const drop2      = document.getElementById('drop2');
 
   if (drop2) {
     drop2.addEventListener('dragover', e => { e.preventDefault(); drop2.classList.add('drag'); });
@@ -80,37 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (goBtn2) {
-    goBtn2.onclick = async () => {
-      const file = fileInput2.files?.[0];
-      if (!file) { alert('Selecciona un PDF'); return; }
+    goBtn2.addEventListener('click', async () => {
+      const file = fileInput2?.files?.[0];
+      if (!file) return alert('Selecciona un PDF');
 
-      const form = new FormData();
-      form.append('file', file);
+      const fd = new FormData();
+      fd.append('file', file);
 
-      const res = await fetch(`/api/pdf2word?ocr=${ocrChk?.checked ?? false}`, {
-        method: 'POST',
-        body: form
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(`Error: ${err.error || res.statusText}\n${err.detail || ''}`);
-        return;
+      try {
+        const res = await fetch(`/api/pdf2word?ocr=${ocrChk?.checked ?? false}`, {
+          method: 'POST', body: fd
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return alert(`Error: ${err.error || res.statusText}\n${err.detail || ''}`);
+        }
+        const blob = await res.blob();
+        downloadBlob(blob, file.name.replace(/\.pdf$/i, '') + '.docx');
+      } catch (e) {
+        alert(`Fallo de red: ${e.message || e}`);
       }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name.replace(/\.pdf$/i, '') + '.docx';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    };
+    });
   }
 
-  // ----- Fusionar 2 PDFs -----
+  // =========================
+  //  Fusionar 2 PDFs
+  // =========================
   const mergeForm = document.getElementById('mergeForm');
   const mergeMsg  = document.getElementById('mergeMsg');
   const drop3     = document.getElementById('drop3');
@@ -125,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault(); drop3.classList.remove('drag');
       const files = e.dataTransfer.files;
       if (!files?.length) return;
-
       const pdfs = [...files].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
       if (pdfs[0]) { const dt1 = new DataTransfer(); dt1.items.add(pdfs[0]); f1.files = dt1.files; }
       if (pdfs[1]) { const dt2 = new DataTransfer(); dt2.items.add(pdfs[1]); f2.files = dt2.files; }
@@ -135,19 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mergeForm && f1 && f2) {
     mergeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       mergeMsg.textContent = 'Procesando...';
       mergeMsg.classList.remove('ok', 'err');
-
       if (goMerge) goMerge.disabled = true;
 
       try {
-        if (!f1.files?.[0] || !f2.files?.[0]) {
-          mergeMsg.textContent = 'Selecciona ambos archivos';
-          mergeMsg.classList.add('err');
-          if (goMerge) goMerge.disabled = false;
-          return;
-        }
+        if (!f1.files?.[0] || !f2.files?.[0]) throw new Error('Selecciona ambos archivos');
 
         const fd = new FormData();
         fd.append('file1', f1.files[0]);
@@ -162,27 +148,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
         const ts   = new Date().toISOString().replace(/[:.]/g, '-');
-        a.href = url; a.download = `fusion_${ts}.pdf`;
-        document.body.appendChild(a); a.click();
-        a.remove(); URL.revokeObjectURL(url);
-
-        mergeMsg.textContent = 'Listo: archivo descargado.';
-        mergeMsg.classList.add('ok');
-        setTimeout(() => {
-          mergeMsg.classList.remove('ok');
-          mergeMsg.textContent = '';
-        }, 2300);
-
+        downloadBlob(blob, `fusion_${ts}.pdf`);
+        mergeMsg.textContent = 'Listo: archivo descargado.'; mergeMsg.classList.add('ok');
+        setTimeout(() => { mergeMsg.textContent = ''; mergeMsg.classList.remove('ok'); }, 2300);
         mergeForm.reset();
       } catch (err) {
         mergeMsg.textContent = err.message || 'No se pudo fusionar los PDFs';
-        mergeMsg.classList.remove('ok');
-        mergeMsg.classList.add('err');
+        mergeMsg.classList.remove('ok'); mergeMsg.classList.add('err');
       } finally {
         if (goMerge) goMerge.disabled = false;
+      }
+    });
+  }
+
+  // =========================
+  //  Imagen → PDF
+  // =========================
+  const imgInput = document.getElementById('imgFile');
+  const goImgPdf = document.getElementById('goImgPdf');
+
+  if (goImgPdf) {
+    goImgPdf.addEventListener('click', async () => {
+      const f = imgInput?.files?.[0];
+      if (!f) return alert('Selecciona una imagen JPG o PNG');
+      const size   = document.getElementById('page').value;
+      const margin = document.getElementById('margin').value || 10;
+
+      const fd = new FormData();
+      fd.append('file', f);
+
+      try {
+        const r = await fetch(`/api/img2pdf?size=${encodeURIComponent(size)}&margin=${encodeURIComponent(margin)}`, {
+          method: 'POST', body: fd
+        });
+        if (!r.ok) {
+          let msg = 'Error';
+          try { const e = await r.json(); msg = `${e.error}${e.detail ? `: ${e.detail}` : ''}`; } catch {}
+          return alert(msg);
+        }
+        const blob = await r.blob();
+        downloadBlob(blob, f.name.replace(/\.(jpe?g|png)$/i, '') + '.pdf');
+      } catch (e) {
+        alert(`Fallo de red: ${e.message || e}`);
       }
     });
   }
