@@ -12,6 +12,12 @@ const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, 'tmp');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
+// 👉 sirve /tmp estático (para bajar los .docx y ver archivos generados)
+app.use('/tmp', express.static(UPLOAD_DIR));
+
+// (opcional) si algún endpoint recibe JSON por body
+app.use(express.json());
+
 // Storage compartido (archivos en /tmp del proyecto)
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
@@ -45,7 +51,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Montar módulos (routers)
 app.use('/api/compress',  require('./api/compress')({  upload: uploadPdf, UPLOAD_DIR }));
-app.use('/api/pdf2word',  require('./api/pdf2word')({  upload: uploadPdf, UPLOAD_DIR }));
+app.use('/api/pdf2word',  require('./api/pdf2word')({  upload: uploadPdf, UPLOAD_DIR })); // 👈 NUEVO / actualizado
 app.use('/api/merge-two', require('./api/merge-two')({ upload: uploadPdf /* usa PDFs */ }));
 app.use('/api/img2pdf',   require('./api/img2pdf')({   upload: uploadImg, UPLOAD_DIR })); // NUEVO
 

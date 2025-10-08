@@ -1,3 +1,70 @@
-node_modules
-tmp
+# ======================
+# Node / NPM
+# ======================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# Mantener el lockfile
+!package-lock.json
+
+# ======================
+# Logs
+# ======================
+logs/
+*.log
+*.log.*
+*.pid
+
+# ======================
+# Archivos temporales / subidas
+# ======================
+tmp/*
+!tmp/.gitkeep
+
+# Si usas una carpeta de uploads pública, déjala vacía en git
+public/uploads/*
+!public/uploads/.gitkeep
+
+# ======================
+# Python / venv
+# ======================
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.cache/
+
+# Build / packaging Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ======================
+# Variables de entorno
+# ======================
+.env
+.env.*
+!.env.example
+
+# ======================
+# IDE / Editor
+# ======================
+.vscode/
+.idea/
+*.iml
+
+# ======================
+# OS / otros
+# ======================
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+.ipynb_checkpoints/
