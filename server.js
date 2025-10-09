@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
@@ -12,48 +13,36 @@ const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = path.join(__dirname, 'tmp');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// 👉 sirve /tmp estático (para bajar los .docx y ver archivos generados)
+// Estáticos
 app.use('/tmp', express.static(UPLOAD_DIR));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// (opcional) si algún endpoint recibe JSON por body
+// Body JSON (por si se usa en alguna feature)
 app.use(express.json());
 
 // Storage compartido (archivos en /tmp del proyecto)
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => cb(null, `${randomUUID()}-${file.originalname.replace(/\s+/g, "_")}`)
+  filename: (_req, file, cb) =>
+    cb(null, `${randomUUID()}-${file.originalname.replace(/\s+/g, "_")}`)
 });
 
-// Multer para **PDF**
-const uploadPdf = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const type = file.mimetype || mime.lookup(file.originalname);
-    if (type === 'application/pdf') cb(null, true);
-    else cb(new Error('Solo se aceptan archivos PDF'));
-  }
+// ====== Cargador de features (modular) ======
+try {
+  const { loadFeatures } = require('./api/feature-loader');
+  loadFeatures(app, { UPLOAD_DIR, storage, rootDir: __dirname });
+  console.log('[features] loader activo');
+} catch (e) {
+  console.warn('[features] loader ausente o falló:', e.message);
+}
+
+// (opcional) manejo básico de errores de subida
+app.use((err, _req, res, _next) => {
+  if (!err) return res.status(500).json({ error: 'Error interno' });
+  const msg = err.message || 'Error interno';
+  const isClient = /Solo\s|file too large|Unexpected field/i.test(msg);
+  res.status(isClient ? 400 : 500).json({ error: msg });
 });
-
-// Multer para **imágenes (JPG/PNG)**
-const uploadImg = multer({
-  storage,
-  limits: { fileSize: 30 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const type = (file.mimetype || mime.lookup(file.originalname) || '').toString();
-    if (/^image\/(jpeg|png)$/.test(type)) cb(null, true);
-    else cb(new Error('Solo se aceptan imágenes JPG o PNG'));
-  }
-});
-
-// Archivos estáticos (UI)
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Montar módulos (routers)
-app.use('/api/compress',  require('./api/compress')({  upload: uploadPdf, UPLOAD_DIR }));
-app.use('/api/pdf2word',  require('./api/pdf2word')({  upload: uploadPdf, UPLOAD_DIR })); // 👈 NUEVO / actualizado
-app.use('/api/merge-two', require('./api/merge-two')({ upload: uploadPdf /* usa PDFs */ }));
-app.use('/api/img2pdf',   require('./api/img2pdf')({   upload: uploadImg, UPLOAD_DIR })); // NUEVO
 
 app.listen(PORT, '0.0.0.0', () =>
   console.log(`Utilidades PDF Inalma en http://localhost:${PORT}`)

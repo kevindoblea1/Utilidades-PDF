@@ -120,5 +120,6 @@
 
   <!-- JS -->
   <script src="app.js?v=3"></script>
+  <script src="app-docx2excel.js?v=1"></script><!-- NUEVO -->
 </body>
 </html>
