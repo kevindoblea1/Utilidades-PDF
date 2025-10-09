@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+import argparse, os, zipfile, sys
+import pandas as pd
+
+try:
+    from docx import Document
+    HAS_PYDOCX = True
+except Exception:
+    HAS_PYDOCX = False
+
+def choose_engine():
+    try:
+        import xlsxwriter  # noqa: F401
+        return "xlsxwriter"
+    except Exception:
+        return "openpyxl"
+
+def read_tables_docx(path):
+    """Devuelve lista de DataFrames a partir de tablas estándar de Word."""
+    dfs = []
+    if not HAS_PYDOCX:
+        return dfs
+    doc = Document(path)
+    for t in doc.tables:
+        rows = []
+        max_cols = max((len(r.cells) for r in t.rows), default=0)
+        for r in t.rows:
+            rows.append([c.text.strip() for c in r.cells] + [""] * (max_cols - len(r.cells)))
+        if rows:
+            # intenta usar primera fila como encabezado si parece cabecera
+            header = [h.strip() for h in rows[0]]
+            # heurística simple: si hay texto en >50% celdas, trátalo de header
+            if sum(bool(x) for x in header) >= max(1, int(len(header)*0.5)):
+                df = pd.DataFrame(rows[1:], columns=header)
+            else:
+                df = pd.DataFrame(rows)
+            # adelante/atrás para rellenar celdas vacías de celdas combinadas
+            df.replace("", pd.NA, inplace=True)
+            df = df.ffill().bfill()
+            dfs.append(df)
+    return dfs
+
+def read_paragraphs_xml(path):
+    """Extrae párrafos desde word/document.xml (incluye cuadros de texto)."""
+    # Evita dependencias extra: usa xml.etree
+    import xml.etree.ElementTree as ET
+    with zipfile.ZipFile(path) as z:
+        xml = z.read('word/document.xml')
+    # Namespaces de Word
+    ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+    root = ET.fromstring(xml)
+    lines = []
+    for p in root.findall('.//w:p', ns):
+        # Concatenar todos los w:t del párrafo
+        texts = [t.text for t in p.findall('.//w:t', ns) if t.text]
+        line = "".join(texts).strip()
+        if line:
+            lines.append(line)
+    # Quitar duplicados consecutivos y ruido trivial
+    cleaned = []
+    prev = None
+    for ln in lines:
+        if ln != prev:
+            cleaned.append(ln)
+        prev = ln
+    return cleaned
+
+def write_xlsx(dfs, paragraphs, out_path, include_combined=True):
+    engine = choose_engine()
+    with pd.ExcelWriter(out_path, engine=engine) as w:
+        wrote_any = False
+
+        # 1) Escribe tablas si existen
+        for i, df in enumerate(dfs, start=1):
+            sheet = f"Tabla{i}"
+            df.to_excel(w, sheet_name=sheet, index=False)
+            wrote_any = True
+
+        # 2) Hoja combinada (si hay varias tablas)
+        if wrote_any and include_combined and len(dfs) > 1:
+            combo = pd.concat(dfs, ignore_index=True)
+            combo.to_excel(w, sheet_name="Combinado", index=False)
+
+        # 3) Fallback: si no hubo tablas, escribir párrafos
+        if not wrote_any:
+            if paragraphs:
+                pd.DataFrame({"Texto": paragraphs}).to_excel(w, sheet_name="Texto", index=False)
+                wrote_any = True
+
+        # 4) Si aún no hay nada, deja mensaje mínimo
+        if not wrote_any:
+            pd.DataFrame({"Mensaje": ["El documento no contiene tablas ni texto."]}).to_excel(
+                w, sheet_name="Mensaje", index=False
+            )
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("input", help=".docx de entrada")
+    ap.add_argument("-o", "--output", help="Ruta de salida .xlsx")
+    ap.add_argument("--no-combined", action="store_true", help="No crear hoja 'Combinado'")
+    args = ap.parse_args()
+
+    in_path = args.input
+    out_path = args.output or os.path.splitext(in_path)[0] + ".xlsx"
+
+    dfs = read_tables_docx(in_path)
+    paragraphs = []
+    if not dfs:
+        try:
+            paragraphs = read_paragraphs_xml(in_path)
+        except Exception:
+            paragraphs = []
+
+    write_xlsx(dfs, paragraphs, out_path, include_combined=(not args.no_combined))
+    print(out_path)
+
+if __name__ == "__main__":
+    sys.exit(main())
